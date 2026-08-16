@@ -1,1 +1,20 @@
+# PPO Notes
+
+## 1. Clipped Surrogate Objective
+
+Let (r_t(\theta)) denote the probability ratio between the new policy and the old policy.
+
+* When the advantage (A_t) is positive, increasing (r_t(\theta)) increases the probability of taking a beneficial action. PPO clips the ratio at (1+\epsilon). Once the ratio exceeds this boundary, the clipped objective no longer encourages the policy to further increase the probability of that action.
+
+* When the advantage (A_t) is negative, decreasing (r_t(\theta)) reduces the probability of taking a disadvantageous action. PPO clips the ratio at (1-\epsilon). Once the ratio falls below this boundary, the clipped objective no longer encourages the policy to further decrease the probability of that action.
+
+More precisely, after the relevant clipping boundary is crossed, the clipped term for that sample has zero gradient with respect to the probability ratio. This does not mean that the gradient of the entire PPO loss becomes zero.
+
+## 2. Entropy Bonus
+
+The entropy bonus is separate from policy clipping and KL-divergence constraints.
+
+The entropy bonus rewards policies with higher entropy. It encourages exploration and helps prevent the policy from becoming nearly deterministic too early.
+
+TRPO uses a hard constraint on the KL divergence between the old and new policies. PPO-Clip instead uses the clipped surrogate objective to limit excessively large policy updates. Some PPO implementations also include an entropy bonus, but its purpose is to encourage exploration rather than to constrain the distance between the old and new policies.
 
