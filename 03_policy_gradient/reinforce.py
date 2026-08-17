@@ -68,22 +68,31 @@ def compute_returns(rewards, gamma=0.99):
 
     G = 0
 
+    #why?
+    #Beacause the things happened before the current time step are independent of the current action.
+    #So we only need to consider the rewards that come after the current time step when calculating the return for that time step. 
+    # 
+    # 
     for reward in reversed(rewards):
-
         G = reward + gamma * G
+
         #returns.insert(0,G)
         returns.append(G)
     returns.reverse()
 
     returns = torch.tensor(returns, dtype=torch.float32)
+
+    #Here, advantages = returns
+    #In actor-critic methods, advantages = returns - baseline (value function)
     
+
+    #Centering and normalizing(industry) the returns to have mean 0 and std 1, which can help with training stability
     returns = (returns - returns.mean()) / (returns.std() + 1e-8)
 
     return returns
 
 
 def update(policy, optimizer,log_probs, returns):
-
 
 
     log_probs_tensor = torch.stack(log_probs)
