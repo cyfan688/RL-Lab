@@ -1,0 +1,38 @@
+import random
+from collections import deque
+
+
+class ReplayBuffer:
+    def __init__(self, capacity):
+        self.buffer = deque(maxlen=capacity)
+
+    def push(self, state, action, reward, next_state, done):
+        transition = (state, action, reward, next_state, done)
+        self.buffer.append(transition)
+
+    def sample(self, batch_size):
+        batch = random.sample(self.buffer, batch_size)
+
+        states, actions, rewards, next_states, dones = zip(*batch)
+
+        return states, actions, rewards, next_states, dones
+
+    def __len__(self):
+        return len(self.buffer)
+
+if __name__ == "__main__":
+    buffer = ReplayBuffer(capacity=5)
+
+    # 添加一些样本
+    for i in range(7):
+        buffer.push(i, i + 1, i + 2, i + 3, False)
+
+    print("Buffer length:", len(buffer))  # 输出: Buffer length: 5
+
+    # 随机采样
+    states, actions, rewards, next_states, dones = buffer.sample(batch_size=3)
+    print("Sampled states:", states)
+    print("Sampled actions:", actions)
+    print("Sampled rewards:", rewards)
+    print("Sampled next_states:", next_states)
+    print("Sampled dones:", dones)

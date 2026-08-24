@@ -318,7 +318,7 @@ def ppo_update(
             # Diagnostics only
             with torch.no_grad():
                 approximate_kl = (
-                    ratio - 1.0 - log_ratio
+                    -log_ratio
                 ).mean()
 
                 clip_fraction = (
