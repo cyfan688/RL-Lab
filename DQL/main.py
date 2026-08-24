@@ -680,7 +680,7 @@ def Deep_Q_Learning(
             )
 
             plt.xlabel(
-                "50k Environment Steps"
+                "2k Environment Steps"
             )
 
             plt.ylabel(
