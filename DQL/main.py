@@ -1,5 +1,6 @@
 import random
 from pathlib import Path
+import math
 
 import ale_py
 import gymnasium as gym
@@ -123,14 +124,13 @@ def get_epsilon(
     step,
     initial_exploration,
     final_exploration,
-    exploration_steps
+    k
 ):
     epsilon = (
-        initial_exploration
+        final_exploration
         +
-        (final_exploration - initial_exploration)
-        * step
-        / exploration_steps
+        (initial_exploration - final_exploration)
+        * math.exp(-k * step)
     )
 
     return max(
@@ -193,13 +193,13 @@ def Deep_Q_Learning(
     # NOTE:
     # 100,000 is much easier on RAM for learning/debugging.
     # Paper-scale buffers can be much larger.
-    replay_memory_size=100_000,
+    replay_memory_size=1000_000,
 
-    total_steps=1_000_000,
+    total_steps=10_000_000,
 
     update_frequency=4,
 
-    batch_size=32,
+    batch_size=128,
 
     discount_factor=0.99,
 
@@ -207,9 +207,7 @@ def Deep_Q_Learning(
 
     initial_exploration=1.0,
 
-    final_exploration=0.01,
-
-    exploration_steps=1_000_000,
+    final_exploration=0.05,
 
     # Target network update frequency
     target_update_frequency=10_000,
@@ -347,7 +345,7 @@ def Deep_Q_Learning(
             step,
             initial_exploration,
             final_exploration,
-            exploration_steps
+            k=5e-7
         )
 
 
@@ -514,16 +512,23 @@ def Deep_Q_Learning(
 
             with torch.no_grad():
 
-                # Q_target(s', a')
-                next_q_values = target_network(
+                next_online_q_values = q_network(
                     data.next_observations
                 )
 
-                # max_a' Q_target(s', a')
-                max_next_q = (
-                    next_q_values
-                    .max(dim=1)
-                    .values
+                next_actions = next_online_q_values.argmax(
+                    dim=1,
+                    keepdim=True
+                )
+
+                next_target_q_values = target_network(
+                    data.next_observations
+                )
+
+                next_q = (
+                    next_target_q_values
+                    .gather(1, next_actions)
+                    .squeeze(1)
                 )
 
                 rewards = (
@@ -551,7 +556,7 @@ def Deep_Q_Learning(
                     +
                     discount_factor
                     * (1 - dones)
-                    * max_next_q
+                    * next_q
                 )
 
 
