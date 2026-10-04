@@ -1,1 +1,43 @@
+## 1. Dropout
 
+Dropout is a regularization technique that randomly sets a fraction of activation values to zero during training. It helps reduce overfitting by discouraging the model from relying too heavily on particular activations.
+
+Its placement depends on the implementation. In the implementation examined here, dropout is applied after adding token embeddings and positional encodings, inside the feed-forward network, and to decoder sublayer outputs before residual addition.
+
+No dropout is applied directly to the Q, K, or V projections, the attention weights after softmax, or the final vocabulary projection. However, an attention module's output can still pass through dropout in the surrounding layer.
+
+## 2. Sequence Length, Vocabulary Size, and Actual Input Length
+
+These quantities describe different aspects of the input:
+
+- **`max_len`** is the number of positions supported by the precomputed positional encoding table. Some implementations call this parameter `seq_len`, although `seq_len` can also refer to the actual sequence length elsewhere.
+- **`vocab_size`** is the number of distinct tokens in the vocabulary. It determines the number of rows in the embedding table.
+- **`actual_len`** is the number of tokens in the current input sequence, including padding if present.
+
+Tokenization converts text into token IDs **before** the embedding lookup. The embedding layer then maps each ID to a vector of size `d_model`.
+
+For an input of shape `[batch_size, actual_len]`, the embedding output has shape `[batch_size, actual_len, d_model]`. The positional encoding table is sliced to match this sequence length before addition.
+
+With a fixed, precomputed positional encoding table, `actual_len` must not exceed `max_len`. There is no required ordering between `vocab_size` and either sequence length.
+
+## 3. Masks
+
+Different attention operations use masks for different purposes:
+
+- **Encoder self-attention:** a source padding mask prevents attention to source PAD tokens.
+- **Decoder self-attention:** a causal mask prevents attention to future positions. A target padding mask can also prevent attention to PAD tokens in the decoder input.
+- **Decoder cross-attention:** a source padding mask prevents the decoder from attending to padded positions in the encoder output.
+
+During training, the decoder input is shifted relative to the target labels. Each position can attend to itself and earlier positions while predicting the next token.
+
+When all padding is on the right, the causal mask already hides PAD tokens from valid target positions. Target padding masks are still useful for more general padding arrangements. PAD labels should also be excluded from the training loss.
+
+## 4. Multi-Head Attention
+
+After linear projection, Q, K, and V are each split into `h` heads along the feature dimension. In the standard configuration, each head has dimension `d_model / h`.
+
+Each head's projection can use all dimensions of the original input. However, this does **not** mean that each head preserves all the input information: each head learns a lower-dimensional representation.
+
+Each head computes its own attention scores and softmax weights, allowing different heads to attend to different positions and representation subspaces. Their outputs are concatenated and passed through an output projection.
+
+Splitting the representation into heads keeps the main attention matrix-multiplication cost comparable to full-dimensional single-head attention while allowing multiple attention patterns.
